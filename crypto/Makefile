@@ -7,9 +7,6 @@ ifneq ($(CLANG_VERSION),)
 $(if $(shell [ $(CLANG_VERSION_MAJOR) -ge 13 ] && echo "OK"), \
     $(eval CLANG_AT_LEAST_13 := true), \
     $(eval CLANG_AT_LEAST_13 := false))
-$(if $(shell [ $(CLANG_VERSION_MAJOR) -ge 14 ] && echo "OK"), \
-    $(eval CLANG_AT_LEAST_14 := true), \
-    $(eval CLANG_AT_LEAST_14 := false))
 endif
 
 ifeq ($(FUZZER),1)
@@ -70,13 +67,8 @@ ZKP_CFLAGS = \
 	-DENABLE_MODULE_SCHNORRSIG \
 	-DENABLE_MODULE_EXTRAKEYS
 ZKP_PATH = ../vendor/secp256k1-zkp
+# this is specific for 64-bit builds
 CFLAGS += -DSECP256K1_CONTEXT_SIZE=208
-
-# TODO remove this workaround once possible
-ifeq ($(CLANG_AT_LEAST_14),true)
-$(warning "warning: suppressing clang-14 compiler warning for secp256k1-zkp code")
-ZKP_CFLAGS += -Wno-bitwise-instead-of-logical
-endif
 
 VALGRIND ?= 1
 ifeq ($(VALGRIND),1)

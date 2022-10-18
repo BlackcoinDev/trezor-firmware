@@ -105,6 +105,7 @@ fn prepare_bindings() -> bindgen::Builder {
             "-I../unix",
             "-I../../build/unix",
             "-I../../vendor/micropython/ports/unix",
+            "-DTREZOR_EMULATOR",
         ]);
     }
 
@@ -227,11 +228,15 @@ fn generate_trezorhal_bindings() {
 
     let bindings = prepare_bindings()
         .header("trezorhal.h")
+        // common
+        .allowlist_var("HW_ENTROPY_DATA")
         // secbool
         .allowlist_type("secbool")
         .must_use_type("secbool")
         .allowlist_var("sectrue")
         .allowlist_var("secfalse")
+        // flash
+        .allowlist_function("flash_init")
         // storage
         .allowlist_var("EXTERNAL_SALT_SIZE")
         .allowlist_var("FLAG_PUBLIC")
@@ -246,6 +251,7 @@ fn generate_trezorhal_bindings() {
         .allowlist_function("storage_has_pin")
         .allowlist_function("storage_get_pin_rem")
         .allowlist_function("storage_change_pin")
+        .allowlist_function("storage_ensure_not_wipe_code")
         .allowlist_function("storage_has")
         .allowlist_function("storage_get")
         .allowlist_function("storage_set")
@@ -258,8 +264,8 @@ fn generate_trezorhal_bindings() {
         .allowlist_function("display_refresh")
         .allowlist_function("display_backlight")
         .allowlist_function("display_text")
+        .allowlist_function("display_text_render_buffer")
         .allowlist_function("display_text_width")
-        .allowlist_function("display_text_height")
         .allowlist_function("display_bar")
         .allowlist_function("display_bar_radius")
         .allowlist_function("display_icon")
@@ -269,9 +275,14 @@ fn generate_trezorhal_bindings() {
         .allowlist_function("display_pixeldata")
         .allowlist_function("display_pixeldata_dirty")
         .allowlist_function("display_set_window")
-        .allowlist_function("display_get_glyph")
         .allowlist_var("DISPLAY_CMD_ADDRESS")
         .allowlist_var("DISPLAY_DATA_ADDRESS")
+        .allowlist_type("toif_format_t")
+        // fonts
+        .allowlist_function("font_height")
+        .allowlist_function("font_max_height")
+        .allowlist_function("font_baseline")
+        .allowlist_function("font_get_glyph")
         // uzlib
         .allowlist_function("uzlib_uncompress_init")
         .allowlist_function("uzlib_uncompress")
@@ -288,8 +299,18 @@ fn generate_trezorhal_bindings() {
         .allowlist_function("rgb_led_set_color")
         // time
         .allowlist_function("hal_delay")
-        .allowlist_function("hal_ticks_ms");
-
+        .allowlist_function("hal_ticks_ms")
+        // dma2d
+        .allowlist_function("dma2d_setup_4bpp_over_4bpp")
+        .allowlist_function("dma2d_setup_4bpp_over_16bpp")
+        .allowlist_function("dma2d_start_blend")
+        .allowlist_function("dma2d_wait_for_transfer")
+        //buffers
+        .allowlist_function("buffers_get_line_buffer_16bpp")
+        .allowlist_function("buffers_get_line_buffer_4bpp")
+        .allowlist_function("buffers_get_text_buffer")
+        .allowlist_var("text_buffer_height")
+        .allowlist_var("buffer_width");
     // Write the bindings to a file in the OUR_DIR.
     bindings
         .generate()

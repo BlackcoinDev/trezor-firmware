@@ -14,6 +14,8 @@
 # You should have received a copy of the License along with this library.
 # If not, see <https://www.gnu.org/licenses/lgpl-3.0.html>.
 
+import time
+
 import pytest
 
 from trezorlib import btc, device, messages
@@ -186,19 +188,11 @@ def test_sign_tx(client: Client):
                 request_output(2),
                 request_output(3),
                 request_output(4),
-                request_input(0),
-                request_input(0),
-                request_input(1),
-                request_output(0),
-                request_output(1),
-                request_output(2),
-                request_output(3),
-                request_output(4),
                 request_input(1),
                 request_finished(),
             ]
         )
-        _, serialized_tx = btc.sign_tx(
+        signatures, serialized_tx = btc.sign_tx(
             client,
             "Testnet",
             inputs,
@@ -206,12 +200,15 @@ def test_sign_tx(client: Client):
             prev_txes=TX_CACHE_TESTNET,
             payment_reqs=[payment_req],
             preauthorized=True,
+            serialize=False,
         )
 
-    # Transaction does not exist on the blockchain, not using assert_tx_matches()
+    assert serialized_tx == b""
+    assert len(signatures) == 2
+    assert signatures[0] is None
     assert (
-        serialized_tx.hex()
-        == "010000000001028abbd1cf69e00fbf60fa3ba475dccdbdba4a859ffa6bfd1ee820a75b1be2b7e50000000000ffffffff0ab6ad3ba09261cfb4fa1d3680cb19332a8fe4d9de9ea89aa565bd83a2c082f90100000000ffffffff0550c3000000000000225120e0458118b80a08042d84c4f0356d86863fe2bffc034e839c166ad4e8da7e26ef50c3000000000000225120bdb100a4e7ba327d364642dc653b9e6b51783bde6ea0df2ccbc1a78e3cc1329511e56d0000000000225120c5c7c63798b59dc16e97d916011e99da5799d1b3dd81c2f2e93392477417e71e72bf00000000000022512062fdf14323b9ccda6f5b03c5c2c28e35839a3909a2e14d32b595c63d53c7b88f51900000000000001976a914a579388225827d9f2fe9014add644487808c695d88ac000140c017fce789fa8db54a2ae032012d2dd6d7c76cc1c1a6f00e29b86acbf93022da8aa559009a574792c7b09b2535d288d6e03c6ed169902ed8c4c97626a83fbc1100000000"
+        signatures[1].hex()
+        == "c017fce789fa8db54a2ae032012d2dd6d7c76cc1c1a6f00e29b86acbf93022da8aa559009a574792c7b09b2535d288d6e03c6ed169902ed8c4c97626a83fbc11"
     )
 
     # Test for a second time.
@@ -236,6 +233,110 @@ def test_sign_tx(client: Client):
             payment_reqs=[payment_req],
             preauthorized=True,
         )
+
+
+def test_sign_tx_large(client: Client):
+    # NOTE: FAKE input tx
+
+    commitment_data = b"\x0fwww.example.com" + (1).to_bytes(ROUND_ID_LEN, "big")
+    own_input_count = 10
+    total_input_count = 400
+    own_output_count = 30
+    total_output_count = 1200
+    output_denom = 10_000  # sats
+    max_expected_delay = 60  # seconds
+
+    with client:
+        btc.authorize_coinjoin(
+            client,
+            coordinator="www.example.com",
+            max_rounds=2,
+            max_coordinator_fee_rate=50_000_000,  # 0.5 %
+            max_fee_per_kvbyte=3500,
+            n=parse_path("m/10025h/1h/0h/1h"),
+            coin_name="Testnet",
+            script_type=messages.InputScriptType.SPENDTAPROOT,
+        )
+
+    # INPUTS.
+
+    external_input = messages.TxInputType(
+        # seed "alcohol woman abuse must during monitor noble actual mixed trade anger aisle"
+        # m/10025h/1h/0h/1h/0/0
+        # tb1pkw382r3plt8vx6e22mtkejnqrxl4z7jugh3w4rjmfmgezzg0xqpsdaww8z
+        amount=output_denom * total_output_count // total_input_count,
+        prev_hash=FAKE_TXHASH_e5b7e2,
+        prev_index=0,
+        script_type=messages.InputScriptType.EXTERNAL,
+        script_pubkey=bytes.fromhex(
+            "5120b3a2750e21facec36b2a56d76cca6019bf517a5c45e2ea8e5b4ed191090f3003"
+        ),
+        ownership_proof=bytearray.fromhex(
+            "534c001901019cf1b0ad730100bd7a69e987d55348bb798e2b2096a6a5713e9517655bd2021300014052d479f48d34f1ca6872d4571413660040c3e98841ab23a2c5c1f37399b71bfa6f56364b79717ee90552076a872da68129694e1b4fb0e0651373dcf56db123c5"
+        ),
+        commitment_data=commitment_data,
+    )
+
+    internal_input = messages.TxInputType(
+        address_n=parse_path("m/10025h/1h/0h/1h/1/0"),
+        amount=output_denom * own_output_count // own_input_count,
+        prev_hash=FAKE_TXHASH_f982c0,
+        prev_index=1,
+        script_type=messages.InputScriptType.SPENDTAPROOT,
+    )
+
+    inputs = [internal_input] * own_input_count + [external_input] * (
+        total_input_count - own_input_count
+    )
+
+    # OUTPUTS.
+
+    external_output = messages.TxOutputType(
+        # seed "alcohol woman abuse must during monitor noble actual mixed trade anger aisle"
+        # m/10025h/1h/0h/1h/1/0
+        address="tb1pupzczx9cpgyqgtvycncr2mvxscl790luqd8g88qkdt2w3kn7ymhsrdueu2",
+        amount=output_denom,
+        script_type=messages.OutputScriptType.PAYTOADDRESS,
+        payment_req_index=0,
+    )
+
+    internal_output = messages.TxOutputType(
+        # tb1phkcspf88hge86djxgtwx2wu7ddghsw77d6sd7txtcxncu0xpx22shcydyf
+        address_n=parse_path("m/10025h/1h/0h/1h/1/1"),
+        amount=output_denom,
+        script_type=messages.OutputScriptType.PAYTOTAPROOT,
+        payment_req_index=0,
+    )
+
+    outputs = [internal_output] * own_output_count + [external_output] * (
+        total_output_count - own_output_count
+    )
+
+    payment_req = make_payment_request(
+        client,
+        recipient_name="www.example.com",
+        outputs=outputs,
+        change_addresses=[
+            "tb1phkcspf88hge86djxgtwx2wu7ddghsw77d6sd7txtcxncu0xpx22shcydyf"
+        ]
+        * own_output_count,
+    )
+    payment_req.amount = None
+
+    start = time.time()
+    with client:
+        btc.sign_tx(
+            client,
+            "Testnet",
+            inputs,
+            outputs,
+            prev_txes=TX_CACHE_TESTNET,
+            payment_reqs=[payment_req],
+            preauthorized=True,
+            serialize=False,
+        )
+    delay = time.time() - start
+    assert delay <= max_expected_delay
 
 
 def test_sign_tx_spend(client: Client):
@@ -392,13 +493,14 @@ def test_cancel_authorization(client: Client):
 
 def test_get_public_key(client: Client):
     ACCOUNT_PATH = parse_path("m/10025h/1h/0h/1h")
-    EXPECTED_XPUB = "xpub6DyhEpXMikKQgH2S1UcRwjYhxHVVLK8ffaABC5E1M1juvdik9t8VsucEnM585ZpiJjiu5uFnpuq21WnkvAH2h8LDMw6jubfX5J2ZggQX1hP"
+    EXPECTED_XPUB = "tpubDEMKm4M3S2Grx5DHTfbX9et5HQb9KhdjDCkUYdH9gvVofvPTE6yb2MH52P9uc4mx6eFohUmfN1f4hhHNK28GaZnWRXr3b8KkfFcySo1SmXU"
 
     # Ensure that user cannot access SLIP-25 path without UnlockPath.
     with pytest.raises(TrezorFailure, match="Forbidden key path"):
         resp = btc.get_public_node(
             client,
             ACCOUNT_PATH,
+            coin_name="Testnet",
             script_type=messages.InputScriptType.SPENDTAPROOT,
         )
 
@@ -419,6 +521,7 @@ def test_get_public_key(client: Client):
         resp = btc.get_public_node(
             client,
             ACCOUNT_PATH,
+            coin_name="Testnet",
             script_type=messages.InputScriptType.SPENDTAPROOT,
             unlock_path=SLIP25_PATH,
             unlock_path_mac=invalid_unlock_path_mac,
@@ -435,6 +538,7 @@ def test_get_public_key(client: Client):
         resp = btc.get_public_node(
             client,
             ACCOUNT_PATH,
+            coin_name="Testnet",
             script_type=messages.InputScriptType.SPENDTAPROOT,
             unlock_path=SLIP25_PATH,
             unlock_path_mac=unlock_path_mac,

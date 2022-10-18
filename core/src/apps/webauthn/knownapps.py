@@ -211,6 +211,14 @@ def by_rp_id_hash(rp_id_hash: bytes) -> FIDOApp | None:
             use_sign_count=None,
             use_self_attestation=None,
         )
+    if rp_id_hash == b"\x9c\x2e\x02\xc4\xff\xf7\x76\x62\xe1\xde\x80\x3b\x43\x9e\x11\xc0\xdd\x0c\x3f\x66\x42\xce\xc4\xe6\x84\xd6\x49\x87\x0a\xd1\xbb\x59":
+        # WebAuthn key for Invity
+        return FIDOApp(
+            label="invity.io",
+            icon="apps/webauthn/res/icon_invity.toif",
+            use_sign_count=None,
+            use_self_attestation=None,
+        )
     if rp_id_hash == b"\x53\xa1\x5b\xa4\x2a\x7c\x03\x25\xb8\xdb\xee\x28\x96\x34\xa4\x8f\x58\xae\xa3\x24\x66\x45\xd5\xff\x41\x8f\x9b\xb8\x81\x98\x85\xa9":
         # U2F key for Keeper
         return FIDOApp(
@@ -264,6 +272,14 @@ def by_rp_id_hash(rp_id_hash: bytes) -> FIDOApp | None:
         return FIDOApp(
             label="www.namecheap.com",
             icon="apps/webauthn/res/icon_namecheap.toif",
+            use_sign_count=None,
+            use_self_attestation=None,
+        )
+    if rp_id_hash == b"\xa2\x59\xc2\xb5\x0d\x78\x50\x80\xf8\xbe\x7f\x17\xca\xf8\x15\x6c\x8d\x18\xf4\x7e\xdb\xaf\x51\x8f\xa6\xf5\x9f\x29\xcd\x28\xf1\x5c":
+        # WebAuthn key for Proton
+        return FIDOApp(
+            label="proton.me",
+            icon="apps/webauthn/res/icon_proton.toif",
             use_sign_count=None,
             use_self_attestation=None,
         )

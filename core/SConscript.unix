@@ -2,11 +2,13 @@
 # fmt: off
 
 import os
+import tools
 
 BITCOIN_ONLY = ARGUMENTS.get('BITCOIN_ONLY', '0')
 EVERYTHING = BITCOIN_ONLY != '1'
 TREZOR_MODEL = ARGUMENTS.get('TREZOR_MODEL', 'T')
 UI2 = ARGUMENTS.get('UI2', '0') == '1' or TREZOR_MODEL in ('1', 'R')
+DMA2D =  TREZOR_MODEL in ('T', )
 
 FEATURE_FLAGS = {
     "SECP256K1_ZKP": True,  # required for trezor.crypto.curve.bip340 (BIP340/Taproot)
@@ -22,6 +24,23 @@ SOURCE_MOD = [
 PYOPT = ARGUMENTS.get('PYOPT', '1')
 FROZEN = ARGUMENTS.get('TREZOR_EMULATOR_FROZEN', 0)
 RASPI = os.getenv('TREZOR_EMULATOR_RASPI') == '1'
+
+if TREZOR_MODEL in ('1', 'R'):
+    FONT_NORMAL='Font_PixelOperator_Regular_8'
+    FONT_MEDIUM='Font_PixelOperator_Regular_8'
+    FONT_BOLD='Font_PixelOperator_Bold_8'
+    FONT_MONO='Font_PixelOperatorMono_Regular_8'
+if TREZOR_MODEL in ('T', ):
+    if UI2:
+        FONT_NORMAL='Font_TTHoves_Regular_18'
+        FONT_MEDIUM='Font_TTHoves_Medium_20'
+        FONT_BOLD='Font_TTHoves_Bold_16'
+        FONT_MONO='Font_RobotoMono_Regular_20'
+    else:
+        FONT_NORMAL='Font_Roboto_Regular_20'
+        FONT_MEDIUM=None
+        FONT_BOLD='Font_Roboto_Bold_20'
+        FONT_MONO='Font_RobotoMono_Regular_20'
 
 # modtrezorconfig
 CPPPATH_MOD += [
@@ -52,15 +71,15 @@ CPPDEFINES_MOD += [
 ]
 SOURCE_MOD += [
     'embed/extmod/trezorobj.c',
-    'embed/extmod/modtrezorcrypto/modtrezorcrypto.c',
     'embed/extmod/modtrezorcrypto/crc.c',
+    'embed/extmod/modtrezorcrypto/modtrezorcrypto.c',
     'vendor/trezor-crypto/address.c',
+    'vendor/trezor-crypto/aes/aes_modes.c',
     'vendor/trezor-crypto/aes/aescrypt.c',
     'vendor/trezor-crypto/aes/aeskey.c',
-    'vendor/trezor-crypto/aes/aes_modes.c',
     'vendor/trezor-crypto/aes/aestab.c',
-    'vendor/trezor-crypto/base58.c',
     'vendor/trezor-crypto/base32.c',
+    'vendor/trezor-crypto/base58.c',
     'vendor/trezor-crypto/bignum.c',
     'vendor/trezor-crypto/bip32.c',
     'vendor/trezor-crypto/bip39.c',
@@ -68,22 +87,22 @@ SOURCE_MOD += [
     'vendor/trezor-crypto/blake256.c',
     'vendor/trezor-crypto/blake2b.c',
     'vendor/trezor-crypto/blake2s.c',
-    'vendor/trezor-crypto/curves.c',
-    'vendor/trezor-crypto/ecdsa.c',
     'vendor/trezor-crypto/chacha20poly1305/chacha20poly1305.c',
     'vendor/trezor-crypto/chacha20poly1305/chacha_merged.c',
     'vendor/trezor-crypto/chacha20poly1305/poly1305-donna.c',
     'vendor/trezor-crypto/chacha20poly1305/rfc7539.c',
     'vendor/trezor-crypto/chacha_drbg.c',
+    'vendor/trezor-crypto/curves.c',
+    'vendor/trezor-crypto/ecdsa.c',
     'vendor/trezor-crypto/ed25519-donna/curve25519-donna-32bit.c',
     'vendor/trezor-crypto/ed25519-donna/curve25519-donna-helpers.c',
     'vendor/trezor-crypto/ed25519-donna/curve25519-donna-scalarmult-base.c',
-    'vendor/trezor-crypto/ed25519-donna/ed25519.c',
     'vendor/trezor-crypto/ed25519-donna/ed25519-donna-32bit-tables.c',
     'vendor/trezor-crypto/ed25519-donna/ed25519-donna-basepoint-table.c',
     'vendor/trezor-crypto/ed25519-donna/ed25519-donna-impl-base.c',
     'vendor/trezor-crypto/ed25519-donna/ed25519-keccak.c',
     'vendor/trezor-crypto/ed25519-donna/ed25519-sha3.c',
+    'vendor/trezor-crypto/ed25519-donna/ed25519.c',
     'vendor/trezor-crypto/ed25519-donna/modm-donna-32bit.c',
     'vendor/trezor-crypto/groestl.c',
     'vendor/trezor-crypto/hasher.c',
@@ -94,9 +113,10 @@ SOURCE_MOD += [
     'vendor/trezor-crypto/nist256p1.c',
     'vendor/trezor-crypto/pbkdf2.c',
     'vendor/trezor-crypto/rand.c',
-    'vendor/trezor-crypto/ripemd160.c',
     'vendor/trezor-crypto/rfc6979.c',
+    'vendor/trezor-crypto/ripemd160.c',
     'vendor/trezor-crypto/secp256k1.c',
+    'vendor/trezor-crypto/segwit_addr.c',
     'vendor/trezor-crypto/sha2.c',
     'vendor/trezor-crypto/sha3.c',
     'vendor/trezor-crypto/shamir.c',
@@ -154,20 +174,13 @@ if TREZOR_MODEL in ('T',):
 CPPPATH_MOD += [
         'vendor/micropython/lib/uzlib',
 ]
-CPPDEFINES_MOD += [
-    'TREZOR_FONT_BOLD_ENABLE',
-    'TREZOR_FONT_NORMAL_ENABLE',
-    'TREZOR_FONT_MONO_ENABLE',
-]
 SOURCE_MOD += [
+    'embed/extmod/modtrezorui/buffers.c',
+    'embed/extmod/modtrezorui/colors.c',
     'embed/extmod/modtrezorui/display.c',
-    'embed/extmod/modtrezorui/font_bitmap.c',
-    'embed/extmod/modtrezorui/font_roboto_bold_20.c',
-    'embed/extmod/modtrezorui/font_roboto_regular_20.c',
-    'embed/extmod/modtrezorui/font_robotomono_regular_20.c',
-    'embed/extmod/modtrezorui/font_pixeloperator_bold_8.c',
-    'embed/extmod/modtrezorui/font_pixeloperator_regular_8.c',
-    'embed/extmod/modtrezorui/font_pixeloperatormono_regular_8.c',
+    'embed/extmod/modtrezorui/display-unix.c',
+    'embed/extmod/modtrezorui/fonts/fonts.c',
+    'embed/extmod/modtrezorui/fonts/font_bitmap.c',
     'embed/extmod/modtrezorui/modtrezorui.c',
     'embed/extmod/modtrezorui/qr-code-generator/qrcodegen.c',
     'vendor/micropython/lib/uzlib/adler32.c',
@@ -176,13 +189,8 @@ SOURCE_MOD += [
 ]
 if UI2:
     CPPDEFINES_MOD += [
-        'TREZOR_FONT_MEDIUM_ENABLE',
         'TREZOR_UI2',
-    ]
-    SOURCE_MOD += [
-        'embed/extmod/modtrezorui/font_tthoves_bold_16.c',
-        'embed/extmod/modtrezorui/font_tthoves_medium_20.c',
-        'embed/extmod/modtrezorui/font_tthoves_regular_18.c',
+        'USE_RUST_LOADER'
     ]
 if FROZEN:
     CPPDEFINES_MOD += ['TREZOR_EMULATOR_FROZEN']
@@ -355,6 +363,22 @@ if TREZOR_MODEL in ('T',):
         'embed/unix/sbu.c',
         'embed/unix/sdcard.c',
     ]
+
+if DMA2D:
+    CPPDEFINES_MOD += [
+        'USE_DMA2D',
+    ]
+    SOURCE_UNIX += [
+        'embed/unix/dma2d.c',
+    ]
+
+
+# fonts
+tools.add_font('NORMAL', FONT_NORMAL, CPPDEFINES_MOD, SOURCE_MOD)
+tools.add_font('BOLD', FONT_BOLD, CPPDEFINES_MOD, SOURCE_MOD)
+tools.add_font('MEDIUM', FONT_MEDIUM, CPPDEFINES_MOD, SOURCE_MOD)
+tools.add_font('MONO', FONT_MONO, CPPDEFINES_MOD, SOURCE_MOD)
+
 
 SOURCE_QSTR = SOURCE_MOD + SOURCE_MICROPYTHON + SOURCE_UNIX
 
@@ -657,12 +681,14 @@ protobuf_blobs = env.Command(
 )
 env.Depends(protobuf_blobs, qstr_generated)
 
+TARGET = os.popen("rustc -vV | sed -n 's/host: //p'").read().strip()
+
 if ARGUMENTS.get('TREZOR_EMULATOR_DEBUGGABLE', '0') == '1':
     RUST_PROFILE = 'dev'
-    RUST_LIBDIR = 'build/unix/rust/debug'
+    RUST_LIBDIR = f'build/unix/rust/{TARGET}/debug'
 else:
     RUST_PROFILE = 'release'
-    RUST_LIBDIR = 'build/unix/rust/release'
+    RUST_LIBDIR = f'build/unix/rust/{TARGET}/release'
 RUST_LIB = 'trezor_lib'
 RUST_LIBPATH = f'{RUST_LIBDIR}/lib{RUST_LIB}.a'
 
@@ -674,8 +700,10 @@ def cargo_build():
         features.append('ui')
         if PYOPT == '0':
             features.append('debug')
+    if DMA2D:
+        features.append('dma2d')
 
-    return f'cd embed/rust; cargo build --profile {RUST_PROFILE} --target-dir=../../build/unix/rust --no-default-features --features "{" ".join(features)}"'
+    return f'cd embed/rust; cargo build --profile {RUST_PROFILE} --target-dir=../../build/unix/rust --no-default-features --features "{" ".join(features)}"  --target {TARGET}'
 
 rust = env.Command(
     target=RUST_LIBPATH,
