@@ -62,6 +62,24 @@
                 }
             ]
         },
+        "bitcoin:BLK": {
+            "links": {
+                "Github": "https://github.com/CoinBlack/blackcoin-more",
+                "Homepage": "https://blackcoin.org/"
+            },
+            "marketcap_usd": 926624,
+            "name": "Blackcoin",
+            "shortcut": "BLK",
+            "t1_enabled": "yes",
+            "t2_enabled": "yes",
+            "type": "coin",
+            "wallet": [
+                {
+                    "name": "Electrum-BLK",
+                    "url": "https://github.com/CoinBlack/electrum-blk"
+                }
+            ]
+        },
         "bitcoin:BTC": {
             "links": {
                 "Github": "https://github.com/bitcoin/bitcoin",

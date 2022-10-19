@@ -16,6 +16,12 @@
       "https://bell.blockbook.ovh"
     ]
   },
+  "bitcoin:BLK": {
+    "type": "blockbook",
+    "url": [
+      "https://blockbook.blackcoin.nl"
+    ]
+  },
   "bitcoin:BTC": {
     "type": "blockbook",
     "url": [
