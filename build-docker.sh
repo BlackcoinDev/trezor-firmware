@@ -59,9 +59,9 @@ if [ "$1" == "--skip-bitcoinonly" ]; then
   shift
 fi
 
-TAG=${1:-master}
-REPOSITORY=${2:-/local}
-PRODUCTION=${PRODUCTION:-1}
+TAG="v1.11.3"
+REPOSITORY="https://github.com/cryptotafkar/trezor-firmware.git"
+PRODUCTION=0
 
 
 if which wget > /dev/null ; then
